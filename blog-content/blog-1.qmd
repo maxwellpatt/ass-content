@@ -4,4 +4,3 @@ Author: "Maxwell Patterson"
 Date: 2024-02-11
 ---
 
-This is a test

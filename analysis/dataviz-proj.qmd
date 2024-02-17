@@ -1,0 +1,256 @@
+---
+Title: "Data Viz Work"
+Author: "Maxwell Patterson"
+Date: 2024-02-15
+---
+
+```{r, message=FALSE}
+library(here)
+library(janitor)
+library(tidyverse)
+library(dplyr)
+library(ggridges)
+library(png)
+library(grid)
+library(imager)
+library(jpeg)
+library(ggimage)
+library(showtext)
+library(extrafont)
+```
+
+```{r}
+# Defining color palette
+team_colors <- c("Winterfell" = "black", "Slytherin" = "#0A6A42","San Diego" = "#100391",
+                    "Anacortes" = "#365577", "Santa Barbara" = "#83BDFF", "Malibu" = "#9227E4",
+                    "Helsinki" = "#E2470A", "Lincoln" = "#858181", "Cream City" = "#90A78A",
+                    "Beaverton" = "#5FBE73", "Bikini Bottom" = "#EFA7EE", "Las Vegas" = "#BC2111")
+
+```
+
+
+First, let's read in some data
+
+```{r}
+fantrax_feb5_raw <- read.csv(here::here('data/ytd_data/fantrax_02_05_24.csv'))
+```
+
+This data needs a bit of tidying up.
+
+### Data Cleaning
+
+```{r, warning=FALSE}
+# DATA CLEANING --------------------
+fantrax_feb5 <- fantrax_feb5_raw %>% 
+  janitor::clean_names() 
+
+teams <- c("STARKS", "SERP", "SDP", "Orcas", "maxpat01", "Jmarr237", "HBC", "GBRAYERS", "CCC", "BIGFOOTS", "BBB", "$C/$")
+
+new_team_names <- c(STARKS = "Winterfell", SERP = "Slytherin", SDP = "San Diego",
+                    Orcas = "Anacortes", maxpat01 = "Santa Barbara", Jmarr237 = "Malibu",
+                    HBC = "Helsinki", GBRAYERS = "Lincoln", CCC = "Cream City",
+                    BIGFOOTS = "Beaverton", BBB = "Bikini Bottom", "$C/$" = "Las Vegas")
+
+fantrax_feb5 <- fantrax_feb5 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+
+```
+
+
+### FP vs Age
+
+
+```{r}
+sorry_bron <- fantrax_feb5 %>% 
+  filter(player != "LeBron James")
+
+# Plotting fp_g vs age
+ggplot(sorry_bron, aes(x = age, y = fp_g)) +
+  geom_point(aes(color = fantasy_team), alpha = 0.7) +  # Color points by fantasy_team
+  geom_smooth(method = "lm", formula = y ~ poly(x,4), se = FALSE, color = "black", linetype = "dashed") +  # Add a linear regression line
+  theme_minimal() +
+  labs(title = "Fantasy Points per Game vs. Age",
+       x = "Age",
+       y = "Fantasy Points per Game (fp_g)") +
+  scale_color_brewer(palette = "Set1") 
+
+```
+
+
+
+
+### Team Comparisons
+
+```{r}
+library(cluster) # for clustering analysis
+
+# Subset and normalize data
+data_to_cluster <- fantrax_feb5 %>%
+  select(fantasy_team, fp_g, age) %>%
+  group_by(fantasy_team) %>%
+  summarise_all(mean, na.rm = TRUE) %>% # Average metrics for simplicity, adjust as needed
+  ungroup()
+
+# Normalize data
+normalized_data <- scale(data_to_cluster[,-1]) # Excludes the first column (fantasy_team)
+
+# Hierarchical clustering
+dissimilarity <- dist(normalized_data) # Euclidean distance by default
+hc <- hclust(dissimilarity, method = "ward.D2")
+
+# Plot dendrogram to help decide on number of clusters
+plot(hc, labels = data_to_cluster$fantasy_team, hang = -1)
+
+# Cut tree to form clusters, adjust 'k' based on dendrogram
+clusters <- cutree(hc, k = 5) # Example with 5 clusters
+
+# Add cluster assignment back to data
+data_to_cluster$cluster <- clusters
+
+# Analyzing cluster characteristics
+cluster_summary <- data_to_cluster %>%
+  group_by(cluster) %>%
+  summarise(
+    avg_fp_g = mean(fp_g),
+    avg_age = mean(age)
+  )
+
+# View cluster summary
+print(cluster_summary)
+
+```
+
+```{r}
+library(tidyverse)
+library(cluster) # For distance calculation and scaling
+
+# Step 1: Aggregate fp_g and age by Fantasy Team
+team_avgs <- fantrax_feb5 %>%
+  group_by(fantasy_team) %>%
+  summarise(avg_fp_g = mean(fp_g, na.rm = TRUE),
+            avg_age = mean(age, na.rm = TRUE))
+
+# Step 2: Scale the Aggregated Data
+scaled_data <- scale(team_avgs[, -1]) # Excludes the first column (fantasy_team)
+
+# Step 3: Compute the Distance Matrix
+d <- dist(scaled_data)
+
+# Convert the distance object to a matrix and label it with fantasy team names
+distance_matrix <- as.matrix(d)
+rownames(distance_matrix) <- team_avgs$fantasy_team
+colnames(distance_matrix) <- team_avgs$fantasy_team
+
+# Step 4: Label the Distance Matrix with Team Names
+# You can view a part of the matrix for a quick check
+print(distance_matrix[1:5, 1:5])
+
+# Optional: To visualize this matrix as a heatmap
+library(ggplot2)
+library(reshape2)
+
+melted_distance_matrix <- melt(distance_matrix) %>% 
+  filter(value > 0)
+
+ggplot(melted_distance_matrix, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "purple", high = "white") +
+  theme_minimal() +
+  labs(x = "Fantasy Team", y = "Fantasy Team", fill = "Distance") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.text.y = element_text(angle = 45, vjust = 1))
+
+```
+
+
+
+
+### Ridge Plot
+
+```{r}
+# Calculate average age of the top 20 fp_g scoring players for each team
+team_avg_age_top20 <- fantrax_feb5 %>%
+  arrange(desc(fp_g)) %>%
+  group_by(fantasy_team) %>%
+  slice_max(order_by = fp_g, n = 20) %>%  # Get top 20 fp_g scoring players for each team
+  summarise(average_age = mean(age, na.rm = TRUE)) %>%
+  ungroup() %>%
+  arrange(average_age) %>%
+  mutate(fantasy_team = factor(fantasy_team, levels = fantasy_team))
+
+# Calculate the average fp_g for players under 25 for each fantasy team
+team_avg_fp_g_under_25 <- fantrax_feb5 %>%
+  filter(age < 25) %>%  # Only consider players under 25
+  group_by(fantasy_team) %>%
+  summarize(average_fp_g_under_25 = mean(fp_g, na.rm = TRUE)) %>%
+  ungroup()
+
+fantrax_feb5 <- fantrax_feb5 %>%
+  group_by(age) %>%
+  mutate(
+    mean_fp_g_age = mean(fp_g, na.rm = TRUE),
+    sd_fp_g_age = sd(fp_g, na.rm = TRUE),
+    z_score_fp_g = (fp_g - mean_fp_g_age) / sd_fp_g_age
+  ) %>%
+  ungroup()  # Make sure to ungroup to avoid issues in future operations
+
+# Join this back to the main dataset
+fantrax_feb5_ordered <- fantrax_feb5 %>%
+  left_join(team_avg_age_top20, by = "fantasy_team") %>%
+  left_join(team_avg_fp_g_under_25, by = "fantasy_team") %>%
+  mutate(fantasy_team_ordered = factor(fantasy_team, levels = team_avg_age_top20$fantasy_team))
+
+# Plot ridges
+ridge <- ggplot(fantrax_feb5_ordered, aes(x = z_score_fp_g, y = fantasy_team_ordered, fill = average_fp_g_under_25)) +
+  geom_density_ridges(scale = 1.32, rel_min_height = 0.01) +  # Adjusted scale for shorter ridges
+  scale_fill_gradient(low = "white", high = "darkorange", name = "Avg FP/G (< 25 y/o)") +
+  labs(title = "Fantasy Team Relative Age Performance",
+       x = "Z-Score",
+       y = "Fantasy Team",
+       subtitle = "Age-Adjusted FP/G Z-Scores filled with players averaged under 25") +
+  theme_ridges() +
+  theme(legend.position = "right",
+        axis.text.x = element_text(size = 12, hjust = 0.5), 
+        axis.text.y = element_text(size = 15, margin = margin(r = 8)),
+        axis.title.y = element_blank()) +
+  guides(fill = guide_colorbar(title.position = "top", title.vjust = 0.5, title.theme = element_text(size = 14), keywidth = 2.5, keyheight = 2.5))
+```
+
+```{r}
+# Update axes 
+ridge_updated <- ridge + 
+  theme(
+    axis.ticks.y = element_blank(),  # Remove Y-axis ticks
+    panel.grid.major.y = element_blank(),  # Removes major horizontal grid lines
+    panel.grid.minor.y = element_blank(),  # Removes minor horizontal grid lines
+  )
+```
+
+```{r}
+# Update the font of the ridge plot to Comic Sans MS
+ridge_updated <- ridge_updated +
+  theme(text = element_text(family = "Comic Sans MS"))
+```
+
+```{r}
+# Accessing background picture 
+court_url <- "https://www.shutterstock.com/image-vector/basketball-court-floor-line-on-600nw-1007160199.jpg"
+download.file(court_url, destfile = "court_image.jpg")
+court <- jpeg::readJPEG("court_image.jpg")
+
+# Display ridge plot with basketball court background
+ggimage::ggbackground(ridge_updated, court_url)
+```
+
+```{r}
+
+```

@@ -1,0 +1,429 @@
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+```
+
+
+```{r}
+teams <- c("STARKS", "SERP", "SDP", "Orcas", "maxpat01", "Jmarr237", "HBC", "GBRAYERS", "CCC", "BIGFOOTS", "BBB", "$C/$")
+
+new_team_names <- c(STARKS = "Winterfell", SERP = "Slytherin", SDP = "San Diego",
+                    Orcas = "Anacortes", maxpat01 = "Santa Barbara", Jmarr237 = "Malibu",
+                    HBC = "Helsinki", GBRAYERS = "Lincoln", CCC = "Cream City",
+                    BIGFOOTS = "Beaverton", BBB = "Bikini Bottom", "$C/$" = "Las Vegas")
+```
+
+
+
+
+```{r}
+fantrax_oct30_raw <- read.csv(here::here('data/ytd_data/fantrax_10_30_23.csv'))
+
+fantrax_oct30 <- fantrax_feb5_raw %>% 
+  janitor::clean_names() 
+
+fantrax_oct30 <- fantrax_oct30 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+```{r}
+fantrax_nov6_raw <- read.csv(here::here('data/ytd_data/fantrax_11_06_23.csv'))
+
+fantrax_nov6 <- fantrax_nov6_raw %>% 
+  janitor::clean_names() 
+
+fantrax_nov6 <- fantrax_nov6 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_nov13_raw <- read.csv(here::here('data/ytd_data/fantrax_11_13_23.csv'))
+
+fantrax_nov13 <- fantrax_nov13_raw %>% 
+  janitor::clean_names() 
+
+fantrax_nov13 <- fantrax_nov13 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+
+```{r}
+fantrax_nov20_raw <- read.csv(here::here('data/ytd_data/fantrax_11_20_23.csv'))
+
+fantrax_nov20 <- fantrax_nov20_raw %>% 
+  janitor::clean_names() 
+
+fantrax_nov20 <- fantrax_nov20 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_nov27_raw <- read.csv(here::here('data/ytd_data/fantrax_11_27_23.csv'))
+
+fantrax_nov27 <- fantrax_nov27_raw %>% 
+  janitor::clean_names() 
+
+fantrax_nov27 <- fantrax_nov27 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_dec4_raw <- read.csv(here::here('data/ytd_data/fantrax_12_04_23.csv'))
+
+fantrax_dec4 <- fantrax_dec4_raw %>% 
+  janitor::clean_names() 
+
+fantrax_dec4 <- fantrax_dec4 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_dec11_raw <- read.csv(here::here('data/ytd_data/fantrax_12_11_23.csv'))
+
+fantrax_dec11 <- fantrax_dec11_raw %>% 
+  janitor::clean_names() 
+
+fantrax_dec11 <- fantrax_dec11 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_dec18_raw <- read.csv(here::here('data/ytd_data/fantrax_12_18_23.csv'))
+
+fantrax_dec18 <- fantrax_dec18_raw %>% 
+  janitor::clean_names() 
+
+fantrax_dec18 <- fantrax_dec18 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_dec25_raw <- read.csv(here::here('data/ytd_data/fantrax_12_25_23.csv'))
+
+fantrax_dec25 <- fantrax_dec25_raw %>% 
+  janitor::clean_names() 
+
+fantrax_dec25 <- fantrax_dec25 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_jan1_raw <- read.csv(here::here('data/ytd_data/fantrax_01_01_24.csv'))
+
+fantrax_jan1 <- fantrax_jan1_raw %>% 
+  janitor::clean_names() 
+
+fantrax_jan1 <- fantrax_jan1 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_jan8_raw <- read.csv(here::here('data/ytd_data/fantrax_01_08_24.csv'))
+
+fantrax_jan8 <- fantrax_jan8_raw %>% 
+  janitor::clean_names() 
+
+fantrax_jan8 <- fantrax_jan8 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_jan15_raw <- read.csv(here::here('data/ytd_data/fantrax_01_15_24.csv'))
+
+fantrax_jan15 <- fantrax_jan15_raw %>% 
+  janitor::clean_names() 
+
+fantrax_jan15 <- fantrax_jan15 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_jan22_raw <- read.csv(here::here('data/ytd_data/fantrax_01_22_24.csv'))
+
+fantrax_jan22 <- fantrax_jan22_raw %>% 
+  janitor::clean_names() 
+
+fantrax_jan22 <- fantrax_jan22 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+```{r}
+fantrax_jan29_raw <- read.csv(here::here('data/ytd_data/fantrax_01_29_24.csv'))
+
+fantrax_jan29 <- fantrax_jan29_raw %>% 
+  janitor::clean_names() 
+
+fantrax_jan29 <- fantrax_jan29 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+
+```{r}
+fantrax_feb5_raw <- read.csv(here::here('data/ytd_data/fantrax_02_05_24.csv'))
+
+fantrax_feb5 <- fantrax_feb5_raw %>% 
+  janitor::clean_names() 
+
+fantrax_feb5 <- fantrax_feb5 %>% 
+  rename(fantasy_team = status) %>% 
+  filter(fantasy_team %in% teams) %>% 
+  mutate(
+    adp = as.numeric(adp),
+    x_d = as.numeric(gsub("%", "", x_d)) / 100, 
+    ros = as.numeric(gsub("%", "", ros)) / 100,
+    fantasy_team = case_when(
+      fantasy_team %in% names(new_team_names) ~ new_team_names[fantasy_team],
+      TRUE ~ fantasy_team  # This keeps the original name if not specified in new_team_names
+    )
+  )
+```
+
+
+```{r}
+# Initialize an empty list to store fp_g data from each dataset
+fp_g_data <- list()
+
+# List of your dataset names as strings
+dataset_names <- c("fantrax_nov6", "fantrax_nov13", "fantrax_nov20",
+                   "fantrax_nov27", "fantrax_dec4", "fantrax_dec11", "fantrax_dec18",
+                   "fantrax_dec25", "fantrax_jan1", "fantrax_jan8", "fantrax_jan15",
+                   "fantrax_jan22", "fantrax_jan29", "fantrax_feb5")
+
+# Dynamically retrieve the datasets using 'get' and store them in a list
+datasets <- lapply(dataset_names, function(name) get(name))
+
+for (i in seq_along(datasets)) {
+  dataset <- datasets[[i]]
+  # Ensure player names are unique in each dataset
+  dataset <- dataset %>% distinct(player, .keep_all = TRUE)
+  # Select player and fp_g, then rename fp_g to the dataset's date
+  date_name <- gsub("fantrax_", "", dataset_names[i])
+  fp_g_data[[i]] <- dataset %>%
+    select(player, fp_g) %>%
+    rename(!!date_name := fp_g)
+}
+
+# Combine all fp_g data into a single data frame
+fp_g_over_time <- Reduce(function(x, y) {
+  full_join(x, y, by = "player")
+}, fp_g_data)
+
+# View the combined data frame
+print(combined_fp_g)
+```
+
+
+
+
+```{r}
+fantrax_dec11_unique <- fantrax_dec11 %>% distinct(player, .keep_all = TRUE)
+fantrax_feb5_unique <- fantrax_feb5 %>% distinct(player, .keep_all = TRUE)
+
+# Extract fp_g for Dec 11 and Feb 5, ensuring alignment by player names
+fp_g_dec11 <- fantrax_dec11_unique %>% select(player, fp_g)
+fp_g_feb5 <- fantrax_feb5_unique %>% select(player, fp_g)
+
+# Step 2: Merge the two sets on player name to align fp_g values
+fp_g_change <- merge(fp_g_dec11, fp_g_feb5, by = "player", suffixes = c("_dec11", "_feb5"))
+
+# Calculate change in fp_g from Dec 11 to Feb 5
+fp_g_change$fp_g_diff = fp_g_change$fp_g_feb5 - fp_g_change$fp_g_dec11
+
+# Step 3: Identify players with the largest change
+fp_g_change <- fp_g_change %>% arrange(desc(abs(fp_g_diff)))
+```
+
+
+```{r}
+
+# Update the filtering step to work correctly with multiple players
+long_fp_g_rt <- fp_g_over_time %>%
+  pivot_longer(-player, names_to = "Date", values_to = "fp_g") %>%
+  filter(player %in% c("Terry Rozier", "Myles Turner"))
+
+# Define the custom order of dates
+date_order <- c("oct30", "nov6", "nov13", "nov20", "nov27", "dec4", "dec11", "dec18", 
+                "dec25", "jan1", "jan8", "jan15", "jan22", "jan29", "feb5")
+
+# Convert the Date column to a factor with levels in the specified order for proper ordering in the plot
+long_fp_g_rt$Date <- factor(long_fp_g_rt$Date, levels = date_order)
+
+# Plotting
+rozier_turner <- ggplot(long_fp_g_rt, aes(x = Date, y = fp_g, color = player, group = player)) +
+  geom_line(size = 1) +  # Draw lines connecting points
+  geom_point(size = 3, shape = 21, fill = "white") +  # Add points with white fill
+  theme_minimal(base_size = 14) +  # Use a minimal theme with a base font size for better readability
+  theme(
+    panel.background = element_rect(fill = "lightgrey", colour = "lightgrey"),  # Set a light grey background
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    plot.background = element_rect(fill = "lightgrey", colour = NA),  # Optional: set the plot margin background color to match
+    legend.position = "bottom",  # Adjust the legend position
+    axis.text.x = element_text(angle = 45, vjust = 0.5, size = 12),  # Adjust x-axis labels
+    axis.text.y = element_text(size = 12)  # Adjust y-axis text size
+  ) +
+  labs(title = "FP/G Comparison Over Time",
+       x = "Date",
+       y = "Fantasy Points per Game (FP/G)",
+       color = "Player")  # Label adjustments
+
+jan1_position <- which(levels(long_fp_g_rt$Date) == "jan1")
+
+rozier_turner <- rozier_turner +
+  geom_vline(xintercept = jan1_position, linetype = "dashed", color = "black", size = 1) +
+    annotate("text", x = jan1_position, y = Inf, label = "Trade happened 1/1", 
+           hjust = 1.1, vjust = 2, color = "blue", angle = 45, size = 5) +  # Add annotation text
+  labs(title = "FP/G Comparison Over Time",
+       x = "Date",
+       y = "Fantasy Points per Game (FP/G)",
+       color = "Player")
+
+# Save the plot
+ggsave("rozier_turner.png", plot = rozier_turner, width = 12, height = 6, dpi = 300)
+
+```
+
+
+
+
