@@ -1,0 +1,19 @@
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(here)
+```
+
+
+```{r}
+all_seasons <- read.csv(here::here("data/all_seasons.csv"))
+```
+
+
+```{r}
+# Group by players
+players <- all_seasons %>% 
+  group_by(player_name) 
+```
+

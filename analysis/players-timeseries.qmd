@@ -354,7 +354,7 @@ print(combined_fp_g)
 ```
 
 
-
+## Players
 
 ```{r}
 fantrax_dec11_unique <- fantrax_dec11 %>% distinct(player, .keep_all = TRUE)
@@ -425,5 +425,46 @@ ggsave("rozier_turner.png", plot = rozier_turner, width = 12, height = 6, dpi = 
 ```
 
 
+
+## Fantasy Teams
+
+```{r}
+# List of dataset names
+dataset_names <- c("fantrax_oct30", "fantrax_nov6", "fantrax_nov13", "fantrax_nov20",
+                   "fantrax_nov27", "fantrax_dec4", "fantrax_dec11", "fantrax_dec18",
+                   "fantrax_dec25", "fantrax_jan1", "fantrax_jan8", "fantrax_jan15",
+                   "fantrax_jan22", "fantrax_jan29", "fantrax_feb5")
+
+# Retrieve datasets into a list
+weekly_datasets <- mget(dataset_names, inherits = TRUE)
+
+# Assuming each dataset has 'fantasy_team' and 'f_pts' (total fantasy points)
+# Aggregate total fantasy points by team for each week
+total_fpts_by_team_week <- lapply(names(weekly_datasets), function(week) {
+  df <- weekly_datasets[[week]] %>%
+    group_by(fantasy_team) %>%
+    summarise(total_fpts = sum(f_pts, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(Week = gsub("fantrax_", "", week))  # Extracting readable week info from dataset name
+  
+  return(df)
+})
+
+# Combine into a single data frame
+total_fpts_by_team_week_df <- bind_rows(total_fpts_by_team_week)
+
+total_fpts_by_team_week_df$Week <- factor(total_fpts_by_team_week_df$Week, levels = date_order)
+
+ggplot(total_fpts_by_team_week_df, aes(x = Week, y = total_fpts, color = fantasy_team, group = fantasy_team)) +
+  geom_line() +  # Connect total points by team across weeks with lines
+  geom_point() +  # Add points to mark each week's total points
+  theme_minimal() +
+  scale_x_discrete(limits = date_order) +  # Ensure X-axis follows the specified week order
+  labs(title = "Continuous Sum of Total Fantasy Points by Team Over Each Week",
+       x = "Week",
+       y = "Cumulative Total Fantasy Points",
+       color = "Fantasy Team") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Improve readability of week labels
+```
 
 
