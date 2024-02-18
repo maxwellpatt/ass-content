@@ -17,6 +17,9 @@ library(jpeg)
 library(ggimage)
 library(showtext)
 library(extrafont)
+library(fmsb)
+library(radarchart)
+library(plotly)
 ```
 
 ```{r}
@@ -28,16 +31,15 @@ team_colors <- c("Winterfell" = "black", "Slytherin" = "#0A6A42","San Diego" = "
 
 ```
 
-
 First, let's read in some data
 
 ```{r}
-fantrax_feb5_raw <- read.csv(here::here('data/ytd_data/fantrax_02_05_24.csv'))
+fantrax_feb5_raw <- read.csv(here::here('data/fantrax-data/fantrax_02_12_24.csv'))
 ```
 
-This data needs a bit of tidying up.
-
 ### Data Cleaning
+
+This data needs a bit of tidying up.
 
 ```{r, warning=FALSE}
 # DATA CLEANING --------------------
@@ -66,9 +68,7 @@ fantrax_feb5 <- fantrax_feb5 %>%
 
 ```
 
-
 ### FP vs Age
-
 
 ```{r}
 sorry_bron <- fantrax_feb5 %>% 
@@ -85,9 +85,6 @@ ggplot(sorry_bron, aes(x = age, y = fp_g)) +
   scale_color_brewer(palette = "Set1") 
 
 ```
-
-
-
 
 ### Team Comparisons
 
@@ -171,8 +168,9 @@ ggplot(melted_distance_matrix, aes(x = Var1, y = Var2, fill = value)) +
 
 ```
 
+## 
 
-
+## DATA VIZ
 
 ### Ridge Plot
 
@@ -251,6 +249,140 @@ court <- jpeg::readJPEG("court_image.jpg")
 ggimage::ggbackground(ridge_updated, court_url)
 ```
 
-```{r}
+### Radar Plot
 
+```{r}
+# Add age group categories
+fantrax_feb5 <- fantrax_feb5 %>%
+  mutate(age_group = case_when(
+    age < 25 ~ "Under 25",
+    age >= 25 & age < 30 ~ "25-29",
+    age >= 30 ~ "Over 30"
+  ))
+
+# Ensure all teams have all age groups
+complete_teams_age_groups <- expand.grid(fantasy_team = unique(fantrax_feb5$fantasy_team),
+                                         age_group = c("Under 25", "25-29", "30+"))
+
+team_age_group_metrics <- left_join(complete_teams_age_groups, team_age_group_metrics, 
+                                    by = c("fantasy_team", "age_group")) %>%
+  replace_na(list(avg_fp_g = 0, player_count = 0))
+
+# Pivot wider for easier normalization and plotting
+team_metrics_wide <- team_age_group_metrics %>%
+  pivot_wider(names_from = age_group, values_from = c(avg_fp_g, player_count), 
+              names_sep = "_") %>%
+  replace_na(list(avg_fp_g_Under_25 = 0, avg_fp_g_25_29 = 0, avg_fp_g_30 = 0,
+                  player_count_Under_25 = 0, player_count_25_29 = 0, player_count_30 = 0))
+
+normalize <- function(x) {
+  range_x <- range(x, na.rm = TRUE)
+  if(range_x[1] == range_x[2]) return(rep(0.5, length(x)))  # Handle constant columns
+  (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+}
+
+# Apply normalization across the relevant columns
+normalized_columns <- grep("avg_fp_g|player_count", names(team_metrics_wide), value = TRUE)
+team_metrics_wide[normalized_columns] <- lapply(team_metrics_wide[normalized_columns], normalize)
+
+# Check if any column didn't normalize properly (e.g., due to NA values)
+if(any(sapply(team_metrics_wide[normalized_columns], function(x) any(is.na(x))))) {
+  stop("NA values detected in normalized metrics. Check for constant columns or other issues.")
+}
+
+create_and_save_radar_plot <- function(team_data, team_name) {
+  radar_data <- rbind(rep(0, ncol(team_data)),  # Adding min values for radar plot
+                      team_data,                # Team's normalized data
+                      rep(1, ncol(team_data)))  # Adding max values for radar plot
+  radar_chart <- radarchart(radar_data, axistype = 1,
+                            pcol = 1, pfcol = 2, plwd = 2, plty = 1,
+                            title = paste("Radar Plot for", team_name))
+  
+  # Assuming you want to save the plot, specify the directory and filename
+  file_name <- paste0("radar_plot_", gsub("[[:space:]]+", "_", tolower(team_name)), ".png")
+  png(file_name)
+  print(radar_chart)  # Print the plot to the device
+  dev.off()  # Close the device
+}
+
+# Assuming team_metrics_wide is already prepared and unique_teams is defined
+unique_teams <- unique(fantrax_feb5$fantasy_team)
+
+create_and_save_radar_plot <- function(team_data_df, team_name) {
+  # Check if the dataframe is empty or null
+  if(is.null(team_data_df) || nrow(team_data_df) == 0) {
+    message("No data for team: ", team_name)
+    return(NULL)
+  }
+  
+  # Adding min and max rows for radar plot variables
+  min_row <- rep(0, ncol(team_data_df))
+  max_row <- rep(1, ncol(team_data_df))
+  radar_df <- rbind(min_row, team_data_df, max_row)
+  
+  # Creating radar plot
+  png(filename = paste0("radar_plot_", gsub("\\s+", "_", tolower(team_name)), ".png"), width = 800, height = 600)
+  radarchart(radar_df, axistype = 1, pcol = rainbow(5), pfcol = rainbow(5, alpha = 0.5), plwd = 2, plty = 1)
+  dev.off()
+}
+
+# Iterate through each team to create and save radar plots
+for(team in unique_teams) {
+  team_data <- team_metrics_wide %>%
+    filter(fantasy_team == team) %>%
+    select(matches("avg_fp_g|player_count")) %>%
+    summarise(across(everything(), list(~ .[1]))) %>%
+    pivot_longer(everything(), names_to = "Metric", values_to = "Value") %>%
+    mutate(Metric = factor(Metric, levels = unique(.$Metric))) %>%
+    pivot_wider(names_from = Metric, values_from = Value) %>%
+    as.data.frame()  # Ensure the result is a dataframe
+  
+  # Calling the function to create and save the radar plot for the team
+  if(nrow(team_data) > 0) {  # Check if there is data to plot
+    create_and_save_radar_plot(team_data, team)
+  } else {
+    message("Skipping team with no data: ", team)
+  }
+}
+
+```
+
+### Sunburst Plot
+
+```{r}
+# Aggregate total fantasy points by age group for each team
+total_fpts_by_age_team <- fantrax_feb5 %>%
+  group_by(fantasy_team, age_group) %>%
+  summarise(total_f_pts = sum(f_pts, na.rm = TRUE), .groups = 'drop')
+
+# Prepare the sunburst data with appropriate parent-child relationships
+sunburst_data <- total_fpts_by_age_team %>%
+  mutate(id = paste(fantasy_team, age_group, sep = "_"),
+         parent = fantasy_team,
+         label = age_group,
+         value = total_f_pts)
+
+# Add root node
+root_entry <- data.frame(
+  id = "Fantasy Teams",
+  parent = "",
+  label = "Fantasy Teams",
+  value = NA
+)
+
+# Combine root node and sunburst data
+sunburst_data <- bind_rows(root_entry, sunburst_data)
+
+# Replace NA values with 0 for plotting
+sunburst_data$value[is.na(sunburst_data$value)] <- 0
+
+# Generate the sunburst plot
+fig <- plot_ly(sunburst_data, ids = ~id, labels = ~label, parents = ~parent, values = ~value, type = 'sunburst',
+               branchvalues = 'total',
+               marker = list(colors = ~value, colorscale = 'Blues'),
+               textinfo = 'label+percent parent')
+
+fig <- fig %>% layout(margin = list(l = 0, r = 0, b = 0, t = 0))
+
+fig
 ```
