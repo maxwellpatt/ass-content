@@ -5,6 +5,9 @@ Date: 2024-02-15
 ---
 
 ```{r, message=FALSE}
+# Clear environment for sanity
+rm(list=ls())
+# Install some libraries 
 library(here)
 library(janitor)
 library(tidyverse)
@@ -20,6 +23,8 @@ library(extrafont)
 library(fmsb)
 library(radarchart)
 library(plotly)
+library(cluster)
+library(reshape2)
 ```
 
 ```{r}
@@ -89,7 +94,6 @@ ggplot(sorry_bron, aes(x = age, y = fp_g)) +
 ### Team Comparisons
 
 ```{r}
-library(cluster) # for clustering analysis
 
 # Subset and normalize data
 data_to_cluster <- fantrax_feb5 %>%
@@ -128,8 +132,6 @@ print(cluster_summary)
 ```
 
 ```{r}
-library(tidyverse)
-library(cluster) # For distance calculation and scaling
 
 # Step 1: Aggregate fp_g and age by Fantasy Team
 team_avgs <- fantrax_feb5 %>%
@@ -152,16 +154,12 @@ colnames(distance_matrix) <- team_avgs$fantasy_team
 # You can view a part of the matrix for a quick check
 print(distance_matrix[1:5, 1:5])
 
-# Optional: To visualize this matrix as a heatmap
-library(ggplot2)
-library(reshape2)
-
 melted_distance_matrix <- melt(distance_matrix) %>% 
   filter(value > 0)
 
 ggplot(melted_distance_matrix, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile() +
-  scale_fill_gradient(low = "purple", high = "white") +
+  scale_fill_gradient2(low = "forestgreen", mid = "yellow", high ="red", midpoint = 2) +
   theme_minimal() +
   labs(x = "Fantasy Team", y = "Fantasy Team", fill = "Distance") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), axis.text.y = element_text(angle = 45, vjust = 1))
@@ -221,9 +219,7 @@ ridge <- ggplot(fantrax_feb5_ordered, aes(x = z_score_fp_g, y = fantasy_team_ord
         axis.text.y = element_text(size = 15, margin = margin(r = 8)),
         axis.title.y = element_blank()) +
   guides(fill = guide_colorbar(title.position = "top", title.vjust = 0.5, title.theme = element_text(size = 14), keywidth = 2.5, keyheight = 2.5))
-```
 
-```{r}
 # Update axes 
 ridge_updated <- ridge + 
   theme(
@@ -231,15 +227,11 @@ ridge_updated <- ridge +
     panel.grid.major.y = element_blank(),  # Removes major horizontal grid lines
     panel.grid.minor.y = element_blank(),  # Removes minor horizontal grid lines
   )
-```
 
-```{r}
 # Update the font of the ridge plot to Comic Sans MS
 ridge_updated <- ridge_updated +
   theme(text = element_text(family = "Comic Sans MS"))
-```
 
-```{r}
 # Accessing background picture 
 court_url <- "https://www.shutterstock.com/image-vector/basketball-court-floor-line-on-600nw-1007160199.jpg"
 download.file(court_url, destfile = "court_image.jpg")
@@ -385,4 +377,29 @@ fig <- plot_ly(sunburst_data, ids = ~id, labels = ~label, parents = ~parent, val
 fig <- fig %>% layout(margin = list(l = 0, r = 0, b = 0, t = 0))
 
 fig
+```
+
+```{r}
+# Filter for the top 4 teams only
+top_teams <- fantrax_feb5 %>% 
+  filter(fantasy_team %in% c("Bikini Bottom", "Cream City", "Winterfell", "Malibu"))
+
+# Create age groups
+top_teams <- top_teams %>%
+  mutate(age_group = case_when(
+    age < 25 ~ "Under 25",
+    age >= 25 & age <= 29 ~ "25-29",
+    age > 29 ~ "Over 30"
+  ))
+
+# Calculate the number of players per age group for dot size
+top_teams$age_group_count <- ave(top_teams$age_group, top_teams$age_group, FUN=length)
+
+# Plotting with age groups
+ggplot(top_teams, aes(x=age_group, y=f_pts, color=fantasy_team, size=age_group_count)) +
+  geom_point(alpha=0.7) +
+  scale_size_binned(range = c(1, 10), guide = 'none') + # Adjust dot size range as needed
+  theme_minimal() +
+  labs(title="Age Group vs Fantasy Points for Top 4 Teams", x="Age Group", y="Fantasy Points") +
+  theme(legend.position="right")
 ```
