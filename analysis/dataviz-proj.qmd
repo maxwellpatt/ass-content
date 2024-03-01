@@ -1,7 +1,7 @@
 ---
 Title: "Data Viz Work"
 Author: "Maxwell Patterson"
-Date: 2024-02-15
+Date: 2024-02-21
 ---
 
 ```{r, message=FALSE}
@@ -25,6 +25,7 @@ library(radarchart)
 library(plotly)
 library(cluster)
 library(reshape2)
+library(scales)
 ```
 
 ```{r}
@@ -94,7 +95,6 @@ ggplot(sorry_bron, aes(x = age, y = fp_g)) +
 ### Team Comparisons
 
 ```{r}
-
 # Subset and normalize data
 data_to_cluster <- fantrax_feb5 %>%
   select(fantasy_team, fp_g, age) %>%
@@ -238,7 +238,14 @@ download.file(court_url, destfile = "court_image.jpg")
 court <- jpeg::readJPEG("court_image.jpg")
 
 # Display ridge plot with basketball court background
-ggimage::ggbackground(ridge_updated, court_url)
+final_ridge <- ggimage::ggbackground(ridge_updated, court_url)
+
+# Write CSV for 2/21 section
+ggsave(filename = "images/final_ridge_plot.png", # Name of the output file
+       plot = final_ridge, # The variable storing your plot
+       width = 8, # Width of the plot in inches
+       height = 6, # Height of the plot in inches
+       dpi = 300)
 ```
 
 ### Radar Plot
@@ -260,7 +267,7 @@ team_age_group_metrics <- left_join(complete_teams_age_groups, team_age_group_me
                                     by = c("fantasy_team", "age_group")) %>%
   replace_na(list(avg_fp_g = 0, player_count = 0))
 
-# Pivot wider for easier normalization and plotting
+# Pivot wider for easier plotting
 team_metrics_wide <- team_age_group_metrics %>%
   pivot_wider(names_from = age_group, values_from = c(avg_fp_g, player_count), 
               names_sep = "_") %>%
@@ -327,7 +334,7 @@ for(team in unique_teams) {
     pivot_longer(everything(), names_to = "Metric", values_to = "Value") %>%
     mutate(Metric = factor(Metric, levels = unique(.$Metric))) %>%
     pivot_wider(names_from = Metric, values_from = Value) %>%
-    as.data.frame()  # Ensure the result is a dataframe
+    as.data.frame()  # Make sure result is a dataframe
   
   # Calling the function to create and save the radar plot for the team
   if(nrow(team_data) > 0) {  # Check if there is data to plot
@@ -342,64 +349,52 @@ for(team in unique_teams) {
 ### Sunburst Plot
 
 ```{r}
-# Aggregate total fantasy points by age group for each team
-total_fpts_by_age_team <- fantrax_feb5 %>%
-  group_by(fantasy_team, age_group) %>%
-  summarise(total_f_pts = sum(f_pts, na.rm = TRUE), .groups = 'drop')
+# Combine total fantasy points by team
+total_fpts_by_team <- fantrax_feb5 %>%
+  group_by(fantasy_team) %>%
+  summarize(total_pts = sum(f_pts), .groups = 'drop') %>%
+  arrange(desc(total_pts))
 
-# Prepare the sunburst data with appropriate parent-child relationships
-sunburst_data <- total_fpts_by_age_team %>%
-  mutate(id = paste(fantasy_team, age_group, sep = "_"),
-         parent = fantasy_team,
-         label = age_group,
-         value = total_f_pts)
+# Calculating total points for snbrst plot 0
+total_points <- total_fpts_by_age_team %>% 
+  summarize(total_pts = sum(total_f_pts))
 
-# Add root node
-root_entry <- data.frame(
-  id = "Fantasy Teams",
-  parent = "",
-  label = "Fantasy Teams",
-  value = NA
-)
+# Creating base plot
+snbrst_0 <- ggplot(total_points) 
 
-# Combine root node and sunburst data
-sunburst_data <- bind_rows(root_entry, sunburst_data)
+# Creating inner circle (total fantasy points in the whole league)
+snbrst_1 <- snbrst_0 +
+  geom_bar(data = total_points, aes(x = 1, y = total_pts), fill="darkgrey", stat = 'identity') +
+  geom_text(aes(x=1, y=total_pts/2, label=paste('Total fantasy league points:', comma(total_pts))), color='white')
 
-# Replace NA values with 0 for plotting
-sunburst_data$value[is.na(sunburst_data$value)] <- 0
+# Testing first polar coord flip 
+snbrst_1 + coord_polar('y')
 
-# Generate the sunburst plot
-fig <- plot_ly(sunburst_data, ids = ~id, labels = ~label, parents = ~parent, values = ~value, type = 'sunburst',
-               branchvalues = 'total',
-               marker = list(colors = ~value, colorscale = 'Blues'),
-               textinfo = 'label+percent parent')
+# Adding stacked bar chart with each teams total fantasy points
+snbrst_2 <- snbrst_1 +
+  geom_bar(data = total_fpts_by_team, 
+           aes(x = 2, y = total_pts),
+           color = 'white', position = 'stack', stat = 'identity', size = 0.6) +
+  geom_text(data = total_fpts_by_team, aes(label = paste(fantasy_team, total_pts), x = 2, y = total_pts), position = 'stack')
 
-fig <- fig %>% layout(margin = list(l = 0, r = 0, b = 0, t = 0))
+# Adding third column to break up teams into age groups
+# Combine total fantasy points by age group for each team
+total_fpts_by_age_team <- total_fpts_by_age_team %>%
+  left_join(total_fpts_by_team, by = "fantasy_team") %>%
+  arrange(desc(total_pts), fantasy_team, age_group) %>%
+  mutate(team_age_group = factor(paste(fantasy_team, age_group, sep = " - "),
+                                 levels = unique(paste(fantasy_team, age_group, sep = " - ")))) 
 
-fig
+snbrst_3 <- snbrst_2 +
+  geom_bar(data = total_fpts_by_age_team, 
+           aes(x = 3, y = total_f_pts, fill = age_group), 
+           color = 'white', position = 'stack', stat = 'identity', size = 0.6)
+
+# Convert to polar coordinates to achieve the sunburst effect
+snbrst_3 + coord_polar('y')
+  
+
 ```
 
-```{r}
-# Filter for the top 4 teams only
-top_teams <- fantrax_feb5 %>% 
-  filter(fantasy_team %in% c("Bikini Bottom", "Cream City", "Winterfell", "Malibu"))
-
-# Create age groups
-top_teams <- top_teams %>%
-  mutate(age_group = case_when(
-    age < 25 ~ "Under 25",
-    age >= 25 & age <= 29 ~ "25-29",
-    age > 29 ~ "Over 30"
-  ))
-
-# Calculate the number of players per age group for dot size
-top_teams$age_group_count <- ave(top_teams$age_group, top_teams$age_group, FUN=length)
-
-# Plotting with age groups
-ggplot(top_teams, aes(x=age_group, y=f_pts, color=fantasy_team, size=age_group_count)) +
-  geom_point(alpha=0.7) +
-  scale_size_binned(range = c(1, 10), guide = 'none') + # Adjust dot size range as needed
-  theme_minimal() +
-  labs(title="Age Group vs Fantasy Points for Top 4 Teams", x="Age Group", y="Fantasy Points") +
-  theme(legend.position="right")
+```         
 ```

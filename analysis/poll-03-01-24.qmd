@@ -1,0 +1,189 @@
+
+```{r, message=FALSE}
+library(dplyr)
+library(tidyverse)
+library(here)
+library(janitor)
+library(stringr)
+library(ggplot2)
+
+rm(list=ls())
+```
+
+
+```{r, message=FALSE}
+# Read in raw data
+poll_raw <- read_csv(here::here('data/poll-3-1-24.csv'))
+
+poll <- poll_raw %>% 
+  janitor::clean_names()
+  
+```
+
+```{r}
+poll <- poll %>% 
+  select(-reference_number, -status)
+```
+
+```{r}
+poll_respect <- poll %>% 
+  select(1:12)
+```
+
+```{r}
+poll_respect_cleaned <- poll_respect %>%
+  mutate(across(everything(), ~na_if(.x, 12))) 
+```
+
+
+```{r}
+respect_summary <- sapply(poll_respect_cleaned, function(x) {
+  c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE))
+}) %>% t() %>% as.data.frame() %>% rownames_to_column("column") %>%
+  arrange(mean)
+
+respect_summary$column <- str_extract(respect_summary$column, "^[^_]+")
+
+# View the sorted summary statistics
+print(respect_summary)
+```
+
+
+```{r}
+respect_summary$column <- factor(respect_summary$column, levels = respect_summary$column)
+
+# Create the plot
+respect_plot <- ggplot(respect_summary, aes(x = column, y = mean, fill = column)) +
+  geom_bar(stat = "identity", color = "black", show.legend = FALSE) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.2) +
+  theme_bw() +
+  labs(x = "Name", y = "Mean Value", title = "Put Some Respek On My Name") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+
+ggsave(here::here('images/respect-3-1-24.png'), plot = respect_plot, width=10, height=6, dpi=300)
+```
+
+
+
+
+```{r}
+switch_teams <- poll %>% 
+  select(13:24)
+```
+
+
+
+```{r}
+switch_summary <- sapply(switch_teams, function(x) {
+  c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE))
+}) %>% t() %>% as.data.frame() %>% rownames_to_column("column") %>%
+  arrange(mean)
+
+switch_summary$column <- str_extract(switch_summary$column, "^[^_]+")
+
+switch_plot <- ggplot(switch_summary, aes(x = reorder(column, mean), y = mean, fill = column)) +
+  geom_bar(stat = "identity", color = "black", show.legend = FALSE) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.2) +
+  theme_bw() +
+  labs(x = "Name", y = "Mean Value", title = "Team Swapping Preferences") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+
+switch_plot
+
+ggsave(here::here('images/switch-3-1-24.png'), plot = switch_plot, width=10, height=6, dpi=300)
+```
+
+```{r}
+young_comp <- poll %>% 
+  select(27:30)
+```
+
+
+```{r}
+young_summary <- sapply(young_comp, function(x) {
+  c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE))
+}) %>% t() %>% as.data.frame() %>% rownames_to_column("column") %>%
+  arrange(mean)
+
+young_summary$column <- str_extract(young_summary$column, "^[^_]+")
+
+player_plot <- ggplot(young_summary, aes(x = reorder(column, mean), y = mean, fill = column)) +
+  geom_bar(stat = "identity", color = "black", show.legend = FALSE) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.2) +
+  theme_bw() +
+  labs(x = "Name", y = "Rank", title = "Best Assets") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+
+ggsave(here::here('images/bestplayer-3-1-24.png'), plot = player_plot, width=10, height=6, dpi=300)
+```
+
+
+```{r}
+changes <- poll %>% 
+  select(31)
+
+changes_count <- changes %>%
+  group_by(should_we) %>%
+  summarise(count = n())
+
+# Now, create the bar chart
+changes_plot <- ggplot(changes_count, aes(x = should_we, y = count, fill = should_we)) +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  labs(x = "Suggestion", y = "Count", title = "Suggestions for Changes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+
+# If you need to save the plot
+ggsave(here::here("images/suggestions-3-1-24.png"), changes_plot, width = 10, height = 6, dpi = 300)
+```
+
+
+
+```{r}
+draft_strat <- poll %>% 
+  select(32)
+
+strat_count <- draft_strat %>%
+  group_by(if_you_could_redo_this_draft_and_change_strategy_would_you) %>%
+  summarise(count = n())
+
+strat_plot <- ggplot(strat_count, aes(x = if_you_could_redo_this_draft_and_change_strategy_would_you, y = count, fill = if_you_could_redo_this_draft_and_change_strategy_would_you)) +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  labs(x = "Suggestion", y = "Count", title = "Suggestions for Changes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+
+ggsave(here::here("images/strat-3-1-24.png"), strat_plot, width = 10, height = 6, dpi = 300)
+
+```
+
+
+```{r}
+hoopers <- poll %>% 
+  select(34:45)
+
+hoopers_summary <- sapply(hoopers, function(x) {
+  c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE))
+}) %>% t() %>% as.data.frame() %>% rownames_to_column("column") %>%
+  arrange(mean)
+
+hoopers_summary$column <- str_extract(hoopers_summary$column, "^[^_]+")
+
+hoopers_plot <- ggplot(hoopers_summary, aes(x = reorder(column, mean), y = mean, fill = 'black')) +
+  geom_bar(stat = "identity", color = "black", show.legend = FALSE) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.2) +
+  theme_bw() +
+  labs(x = "Name", y = "Rank", title = "Best Hooper") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+
+ggsave(here::here("images/hoopers-3-1-24.png"), hoopers_plot, width = 10, height = 6, dpi = 300)
+```
+
+
+
+
+
